@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>WiFi Packages</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f9;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+    .container {
+      max-width: 480px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    p {
+      text-align: center;
+      margin: 0 0 20px;
+    }
+    .package {
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .package:hover {
+      background: #f9f9f9;
+    }
+    .package.selected {
+      border-color: #007bff;
+      background: #eef5ff;
+    }
+    .form-group {
+      margin-top: 20px;
+    }
+    input[type="tel"] {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      margin-top: 15px;
+      background: #007bff;
+      color: white;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    .support {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 14px;
+      color: #555;
+    }
+    .message {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 14px;
+      display: none;
+    }
+    .success { background: #e6ffed; color: #155724; }
+    .error { background: #ffe6e6; color: #721c24; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2 id="hotspotName">Loading...</h2>
+    <p>Powered by <span id="sellerName"></span></p>
+
+    <div id="packages"></div>
+
+    <div class="form-group">
+      <input type="tel" id="phone" placeholder="Enter your M-Pesa number (07...)" />
+    </div>
+    <button id="payBtn" disabled>Pay Now</button>
+
+    <div class="message" id="msgBox"></div>
+
+    <p class="support">For support contact: <b id="sellerMpesa"></b></p>
+  </div>
+
+  <script>
+    const backendUrl = "https://script.google.com/macros/s/AKfycbyzVG18wFaaNQPwP1iTc7zPSGqxJ3u-ATQXnFOY7M6llzxPo4GmODNNf02e9jn7Y6bn/exec"; // <-- replace with your Apps Script web app URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const routerId = urlParams.get("router");
+
+    let selectedPackage = null;
+    let sellerId = "";
+    let subaccountID = "";
+
+    const hotspotEl = document.getElementById("hotspotName");
+    const sellerEl = document.getElementById("sellerName");
+    const packagesEl = document.getElementById("packages");
+    const phoneEl = document.getElementById("phone");
+    const payBtn = document.getElementById("payBtn");
+    const msgBox = document.getElementById("msgBox");
+    const sellerMpesaEl = document.getElementById("sellerMpesa");
+
+    function showMessage(msg, type="success") {
+      msgBox.style.display = "block";
+      msgBox.textContent = msg;
+      msgBox.className = "message " + type;
+    }
+
+    // --- Fetch seller + packages ---
+    fetch(`${backendUrl}?router=${routerId}&format=json`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) {
+          showMessage(data.error, "error");
+          return;
+        }
+        hotspotEl.textContent = data.hotspotName;
+        sellerEl.textContent = data.sellerName;
+        sellerId = data.sellerId;
+        subaccountID = data.subaccountID;
+        sellerMpesaEl.textContent = "0" + data.sellerMpesa.replace("+254","");
+
+        data.packages.forEach(pkg => {
+          const div = document.createElement("div");
+          div.className = "package";
+          div.innerHTML = `<b>${pkg.name}</b><br>
+                          ${pkg.duration} hrs<br>
+                          <b>KES ${pkg.price}</b>`;
+          div.onclick = () => {
+            document.querySelectorAll(".package").forEach(p => p.classList.remove("selected"));
+            div.classList.add("selected");
+            selectedPackage = pkg;
+            payBtn.disabled = false;
+          };
+          packagesEl.appendChild(div);
+        });
+      })
+      .catch(err => showMessage("Error loading packages: " + err, "error"));
+
+    // --- Handle Pay ---
+    payBtn.addEventListener("click", () => {
+      const phone = phoneEl.value.trim();
+      if (!phone.match(/^0\d{9}$/)) {
+        showMessage("Enter a valid M-Pesa number starting with 0", "error");
+        return;
+      }
+      if (!selectedPackage) {
+        showMessage("Please select a package", "error");
+        return;
+      }
+
+      payBtn.disabled = true;
+      showMessage("Processing payment...", "success");
+
+      fetch(backendUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sellerId,
+          routerId,
+          packageId: selectedPackage.id,
+          amount: selectedPackage.price,
+          duration: selectedPackage.duration,
+          phone
+        })
+      })
+      .then(res => res.json())
+      .then(resp => {
+        if (resp.error) {
+          showMessage("Error: " + resp.error, "error");
+        } else {
+          showMessage(resp.message || "Payment initiated. Check your phone to complete.", "success");
+        }
+        payBtn.disabled = false;
+      })
+      .catch(err => {
+        showMessage("Payment failed: " + err, "error");
+        payBtn.disabled = false;
+      });
+    });
+  </script>
+</body>
+</html>
