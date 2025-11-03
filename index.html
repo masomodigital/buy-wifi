@@ -1,14 +1,19 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
-  <title>Buy WiFi</title>
+  <title>WiFi Packages</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       margin: 0;
       padding: 0;
       background: #f9f9f9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
       text-align: center;
     }
     h2 {
@@ -16,16 +21,23 @@
       font-weight: bold;
       margin-bottom: 5px;
     }
-    .header { margin-bottom: 20px; }
-    .support { margin-top: 10px; font-size: 14px; color: #555; }
-    .support b { color: #000; }
+    .header {
+      margin-bottom: 20px;
+    }
+    .support {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #555;
+    }
+    .support b {
+      color: #000;
+    }
     .packages {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
       gap: 20px;
       max-width: 900px;
-      margin: 0 auto;
     }
     .package-card {
       width: 160px;
@@ -43,10 +55,22 @@
       transition: transform 0.2s;
       flex-shrink: 0;
     }
-    .package-card:hover { transform: scale(1.05); }
-    .package-name { font-size: 16px; margin-bottom: 5px; }
-    .package-duration { font-size: 14px; }
-    .package-price { font-size: 14px; margin: 5px 0; }
+    .package-card:hover {
+      transform: scale(1.05);
+    }
+    .package-name {
+      font-size: 16px;
+      margin-bottom: 5px;
+    }
+    .package-duration {
+      font-size: 14px;
+    }
+    .package-price {
+      font-size: 14px;
+      margin: 5px 0;
+    }
+
+    /* Buy Button */
     .buy-btn {
       background: #fff;
       border: 1px solid #000;
@@ -56,7 +80,9 @@
       cursor: pointer;
       font-weight: bold;
     }
-    .buy-btn:hover { background: #f0f0f0; }
+    .buy-btn:hover {
+      background: #f0f0f0;
+    }
 
     .color1 { background: #ff6b6b; }
     .color2 { background: #4ecdc4; }
@@ -64,6 +90,7 @@
     .color4 { background: #ff9f1c; }
     .color5 { background: #5c6bc0; }
 
+    /* Modal Styles */
     .modal {
       display: none;
       position: fixed;
@@ -83,7 +110,11 @@
       max-width: 400px;
       box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     }
-    .modal-message { font-weight: bold; color: green; margin-bottom: 15px; }
+    .modal-message {
+      font-weight: bold;
+      color: green;
+      margin-bottom: 15px;
+    }
     .modal-input {
       width: 100%;
       padding: 10px;
@@ -92,7 +123,11 @@
       border-radius: 8px;
       margin-bottom: 15px;
     }
-    .modal-actions { display: flex; justify-content: center; gap: 10px; }
+    .modal-actions {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+    }
     .modal-btn {
       background: #007bff;
       color: #fff;
@@ -101,7 +136,9 @@
       border-radius: 6px;
       cursor: pointer;
     }
-    .modal-btn:hover { background: #0056b3; }
+    .modal-btn:hover {
+      background: #0056b3;
+    }
     .cancel-btn {
       background: #000;
       color: #fff;
@@ -110,20 +147,46 @@
       border-radius: 6px;
       cursor: pointer;
     }
-    .cancel-btn:hover { background: #333; }
+    .cancel-btn:hover {
+      background: #333;
+    }
+
+    /* Smartphone Responsive */
+    @media (max-width: 600px) {
+      .package-card {
+        width: 180px;
+        height: 180px;
+        font-size: 18px;
+      }
+      .package-name { font-size: 18px; }
+      .package-duration,
+      .package-price { font-size: 16px; }
+    }
+    @media (max-width: 400px) {
+      .packages {
+        flex-direction: column;
+        align-items: center;
+      }
+      .package-card {
+        width: 200px;
+        height: 200px;
+      }
+    }
   </style>
 </head>
 <body>
 
   <div class="header">
-    <h2 id="hotspot">Loading WiFi...</h2>
-    <p id="seller"></p>
-    <p class="support" id="support"></p>
+    <h2 id="hotspotName">Welcome to HIGH SPEED WiFi</h2>
+    <p>Provided by <b id="sellerName"></b></p>
+    <p class="support">For support contact: <b id="sellerMpesa"></b></p>
   </div>
 
-  <div class="packages" id="packages"></div>
+  <div class="packages" id="packagesContainer">
+    <!-- Packages will be rendered here -->
+  </div>
 
-  <!-- Modal -->
+  <!-- Custom Modal -->
   <div class="modal" id="phoneModal">
     <div class="modal-content">
       <div class="modal-message">
@@ -138,52 +201,11 @@
   </div>
 
   <script>
-    const WORKER_URL = "https://young-butterfly-9a98.ev-dmaundu.workers.dev";
-    const urlParams = new URLSearchParams(window.location.search);
-    const router = urlParams.get("router");
+    const WORKER_URL = "https://young-butterfly-9a98.ev-dmaundu.workers.dev/";
 
-    let sellerId = "", routerId = "", selectedPackage = {};
-
-    async function loadData() {
-      if (!router) return document.body.innerHTML = "<p>Router ID missing</p>";
-
-      try {
-        const res = await fetch(`${WORKER_URL}?router=${router}`);
-        const data = await res.json();
-
-        sellerId = data.sellerId;
-        routerId = data.routerId;
-
-        document.getElementById("hotspot").textContent =
-          `Welcome to HIGH SPEED ${data.hotspotName} WiFi`;
-        document.getElementById("seller").innerHTML =
-          `Provided by <b>${data.sellerName}</b>`;
-        document.getElementById("support").innerHTML =
-          `For support contact: <b>0${String(data.sellerMpesa || "")}</b>`;
-
-        const pkgs = JSON.parse(data.packages);
-        const container = document.getElementById("packages");
-        container.innerHTML = "";
-
-        pkgs.forEach((pkg, i) => {
-          const colorClass = "color" + ((i % 5) + 1);
-          const card = document.createElement("div");
-          card.className = `package-card ${colorClass}`;
-          card.innerHTML = `
-            <div class="package-name">${pkg.name}</div>
-            <div class="package-duration">${pkg.duration} hrs</div>
-            <div class="package-price">KES ${pkg.price}</div>
-            <button class="buy-btn">Buy Now</button>
-          `;
-          card.querySelector("button").onclick = () => openModal(pkg.id, pkg.price, pkg.duration);
-          container.appendChild(card);
-        });
-
-      } catch (err) {
-        console.error(err);
-        alert("Error loading packages: " + err);
-      }
-    }
+    let selectedPackage = {};
+    let sellerId = "";
+    let routerId = "";
 
     function normalizePhone(number) {
       number = number.trim();
@@ -197,51 +219,94 @@
       selectedPackage = { packageId, price, duration };
       document.getElementById("phoneModal").style.display = "flex";
       document.getElementById("phoneInput").value = "07";
-      document.getElementById("phoneInput").focus();
     }
 
-    async function submitPhone() {
-      let phone = document.getElementById("phoneInput").value;
-      if (!phone || !phone.startsWith("07") || phone.length !== 10) {
-        alert("Please enter a valid 10-digit phone number starting with 07");
+    function submitPhone() {
+      var phone = document.getElementById("phoneInput").value;
+      if(!phone || !phone.startsWith("07")){ 
+        alert("Please enter a valid phone number starting with 07"); 
         return;
       }
       phone = normalizePhone(phone);
+
       document.getElementById("phoneModal").style.display = "none";
 
-      try {
-        const res = await fetch(WORKER_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sellerId,
-            routerId,
-            packageId: selectedPackage.packageId,
-            amount: selectedPackage.price,
-            durationHrs: selectedPackage.duration,
-            phoneNumber: phone
-          })
-        });
-
-        const data = await res.json();
-
-        if (data.status === "initiated") {
-          if (data.paystackResponse && data.paystackResponse.status === false) {
-            alert("Payment initiation failed: " + (data.paystackResponse.message || "Unknown error"));
+      // Call GAS via Cloudflare Worker
+      fetch(WORKER_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          function: "startMpesaPayment",
+          sellerId: sellerId,
+          routerId: routerId,
+          packageId: selectedPackage.packageId,
+          amount: selectedPackage.price,
+          durationHrs: selectedPackage.duration,
+          phoneNumber: phone
+        })
+      })
+      .then(res => res.json())
+      .then(res => {
+        if(res.status === "initiated"){
+          if(res.paystackResponse && res.paystackResponse.status === false){
+            var msg = res.paystackResponse.message || "Unknown error from Paystack.";
+            alert("Payment initiation failed: " + msg);
           } else {
-            alert("STK Push sent to your phone. Enter your Mpesa PIN to complete payment.\nReference: " + data.ref);
+            alert(
+              "STK Push sent to your phone. Enter your Mpesa PIN to complete payment.\n" +
+              "Reference: " + res.ref
+            );
           }
         } else {
-          alert("Error initiating payment: " + (data.paystackResponse?.message || "Unknown error"));
+          var msg = res.paystackResponse && res.paystackResponse.message ? res.paystackResponse.message : "Unknown error.";
+          alert("Error initiating payment: " + msg);
         }
-
-      } catch (err) {
-        console.error(err);
-        alert("Network error while initiating payment.");
-      }
+      })
+      .catch(err => alert("Error connecting to server: " + err));
     }
 
-    loadData();
+    // Load packages on page load
+    window.addEventListener("DOMContentLoaded", () => {
+      const params = new URLSearchParams(window.location.search);
+      routerId = params.get("router");
+      if(!routerId){
+        alert("Router ID missing in URL");
+        return;
+      }
+
+      fetch(WORKER_URL + "?router=" + routerId)
+        .then(res => res.json())
+        .then(data => {
+          if(data.error){
+            alert(data.error);
+            return;
+          }
+
+          sellerId = data.sellerId;
+
+          document.getElementById("hotspotName").innerText = "Welcome to HIGH SPEED " + data.hotspotName + " WiFi";
+          document.getElementById("sellerName").innerText = data.sellerName;
+          document.getElementById("sellerMpesa").innerText = "0" + data.sellerMpesa;
+
+          const container = document.getElementById("packagesContainer");
+          const pkgs = data.packages;
+          pkgs.forEach((pkg, i) => {
+            const colorClass = "color" + ((i % 5) + 1);
+            const card = document.createElement("div");
+            card.className = "package-card " + colorClass;
+
+            card.innerHTML = `
+              <div class="package-name">${pkg.name}</div>
+              <div class="package-duration">${pkg.duration} hrs</div>
+              <div class="package-price">KES ${pkg.price}</div>
+              <button class="buy-btn" onclick="openModal('${pkg.id}','${pkg.price}','${pkg.duration}')">Buy Now</button>
+            `;
+            container.appendChild(card);
+          });
+        })
+        .catch(err => alert("Error fetching data: " + err));
+    });
   </script>
+
 </body>
 </html>
