@@ -31,6 +31,12 @@
   .modal-btn:hover { background:#0056b3; }
   .cancel-btn { background:#000; color:#fff; border:none; padding:8px 14px; border-radius:6px; cursor:pointer; }
   .cancel-btn:hover { background:#333; }
+
+  @media (max-width:600px) {
+    .package-card { width:180px; height:180px; font-size:18px; }
+    .package-name { font-size:18px; }
+    .package-duration, .package-price { font-size:16px; }
+  }
 </style>
 </head>
 <body>
@@ -78,6 +84,7 @@ if (!routerId) {
       sellerId = data.sellerId;
       subaccountID = data.subaccountID;
 
+      // Render packages dynamically
       const container = document.getElementById("packagesContainer");
       const colors = ["color1","color2","color3","color4","color5"];
       data.packages.forEach((pkg, i) => {
