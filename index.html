@@ -157,17 +157,13 @@
 
   <script>
     const WORKER_URL = "https://young-butterfly-9a98.ev-dmaundu.workers.dev";
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyzVG18wFaaNQPwP1iTc7zPSGqxJ3u-ATQXnFOY7M6llzxPo4GmODNNf02e9jn7Y6bn/exec";
     const urlParams = new URLSearchParams(window.location.search);
     const router = urlParams.get("router");
 
     let sellerId = "", routerId = "", selectedPackage = {};
 
     async function loadData() {
-      if (!router) {
-        document.body.innerHTML = "<p>Router ID missing</p>";
-        return;
-      }
+      if (!router) { document.body.innerHTML = "<p>Router ID missing</p>"; return; }
 
       try {
         const res = await fetch(`${WORKER_URL}?router=${router}`);
@@ -176,12 +172,9 @@
         sellerId = data.sellerId;
         routerId = data.routerId;
 
-        document.getElementById("hotspot").textContent =
-          `Welcome to HIGH SPEED ${data.hotspotName} WiFi`;
-        document.getElementById("seller").innerHTML =
-          `Provided by <b>${data.sellerName}</b>`;
-        document.getElementById("support").innerHTML =
-          `For support contact: <b>0${String(data.sellerMpesa || "")}</b>`;
+        document.getElementById("hotspot").textContent = `Welcome to HIGH SPEED ${data.hotspotName} WiFi`;
+        document.getElementById("seller").innerHTML = `Provided by <b>${data.sellerName}</b>`;
+        document.getElementById("support").innerHTML = `For support contact: <b>0${String(data.sellerMpesa || "")}</b>`;
 
         const pkgs = JSON.parse(data.packages);
         const container = document.getElementById("packages");
@@ -232,7 +225,7 @@
       document.getElementById("phoneModal").style.display = "none";
 
       try {
-        const res = await fetch(APPS_SCRIPT_URL, {
+        const res = await fetch(WORKER_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -244,7 +237,6 @@
             phoneNumber: phone
           })
         });
-
         const data = await res.json();
 
         if (data.status === "initiated") {
@@ -254,7 +246,7 @@
             alert("STK Push sent to your phone. Enter your Mpesa PIN to complete payment.\nReference: " + data.ref);
           }
         } else {
-          alert("Error initiating payment.");
+          alert("Error initiating payment: " + (data.paystackResponse?.message || "Unknown error"));
         }
 
       } catch (err) {
