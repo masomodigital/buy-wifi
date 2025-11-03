@@ -13,20 +13,25 @@
     }
     h2 {
       color: green;
-      margin: 10px 0;
-      font-size: 1.8rem;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    .header {
+      margin-bottom: 20px;
     }
     .support {
       margin-top: 10px;
       font-size: 14px;
       color: #555;
     }
+    .support b { color: #000; }
     .packages {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
       gap: 20px;
-      margin-top: 20px;
+      max-width: 900px;
+      margin: 0 auto;
     }
     .package-card {
       width: 160px;
@@ -38,40 +43,40 @@
       justify-content: center;
       color: #fff;
       font-weight: bold;
-      cursor: pointer;
       padding: 15px;
+      cursor: pointer;
       box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-      transition: transform 0.2s, box-shadow 0.2s;
+      transition: transform 0.2s;
+      flex-shrink: 0;
     }
-    .package-card:hover {
-      transform: scale(1.05);
-      box-shadow: 0 6px 12px rgba(0,0,0,0.3);
-    }
+    .package-card:hover { transform: scale(1.05); }
+    .package-name { font-size: 16px; margin-bottom: 5px; }
+    .package-duration { font-size: 14px; }
+    .package-price { font-size: 14px; margin: 5px 0; }
+
     .buy-btn {
-      background: rgba(0,0,0,0.2);
-      border: none;
-      color: #fff;
-      padding: 6px 10px;
+      background: #fff;
+      border: 1px solid #000;
+      color: #000;
+      padding: 6px 12px;
       border-radius: 12px;
       cursor: pointer;
-      margin-top: 5px;
+      font-weight: bold;
     }
-    .buy-btn:hover {
-      background: rgba(0,0,0,0.35);
-    }
+    .buy-btn:hover { background: #f0f0f0; }
+
     .color1 { background: #ff6b6b; }
     .color2 { background: #4ecdc4; }
     .color3 { background: #1a535c; }
     .color4 { background: #ff9f1c; }
     .color5 { background: #5c6bc0; }
+
     .modal {
       display: none;
       position: fixed;
       z-index: 1000;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
       background: rgba(0,0,0,0.5);
       justify-content: center;
       align-items: center;
@@ -83,15 +88,18 @@
       text-align: center;
       width: 90%;
       max-width: 400px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     }
+    .modal-message { font-weight: bold; color: green; margin-bottom: 15px; }
     .modal-input {
       width: 100%;
       padding: 10px;
-      margin: 15px 0;
       font-size: 16px;
       border: 1px solid #ccc;
       border-radius: 8px;
+      margin-bottom: 15px;
     }
+    .modal-actions { display: flex; justify-content: center; gap: 10px; }
     .modal-btn {
       background: #007bff;
       color: #fff;
@@ -101,11 +109,32 @@
       cursor: pointer;
     }
     .modal-btn:hover { background: #0056b3; }
+    .cancel-btn {
+      background: #000;
+      color: #fff;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .cancel-btn:hover { background: #333; }
+
+    @media (max-width: 600px) {
+      .package-card { width: 180px; height: 180px; font-size: 18px; }
+      .package-name { font-size: 18px; }
+      .package-duration,
+      .package-price { font-size: 16px; }
+    }
+    @media (max-width: 400px) {
+      .packages { flex-direction: column; align-items: center; }
+      .package-card { width: 200px; height: 200px; }
+    }
   </style>
 </head>
 <body>
+
   <div class="header">
-    <h2 id="hotspot"></h2>
+    <h2 id="hotspot">Loading WiFi...</h2>
     <p id="seller"></p>
     <p class="support" id="support"></p>
   </div>
@@ -119,12 +148,16 @@
         Kindly input Mpesa number to make payment and get connected.
       </div>
       <input type="text" id="phoneInput" class="modal-input" placeholder="07xxxxxxxx">
-      <button class="modal-btn" onclick="submitPhone()">Proceed</button>
+      <div class="modal-actions">
+        <button class="modal-btn" onclick="submitPhone()">Proceed</button>
+        <button class="cancel-btn" onclick="document.getElementById('phoneModal').style.display='none'">Cancel</button>
+      </div>
     </div>
   </div>
 
   <script>
-    const BASE_URL = "https://young-butterfly-9a98.ev-dmaundu.workers.dev";
+    const WORKER_URL = "https://young-butterfly-9a98.ev-dmaundu.workers.dev";
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyzVG18wFaaNQPwP1iTc7zPSGqxJ3u-ATQXnFOY7M6llzxPo4GmODNNf02e9jn7Y6bn/exec";
     const urlParams = new URLSearchParams(window.location.search);
     const router = urlParams.get("router");
 
@@ -135,8 +168,9 @@
         document.body.innerHTML = "<p>Router ID missing</p>";
         return;
       }
+
       try {
-        const res = await fetch(`${BASE_URL}?router=${router}`);
+        const res = await fetch(`${WORKER_URL}?router=${router}`);
         const data = await res.json();
 
         sellerId = data.sellerId;
@@ -161,11 +195,12 @@
             <div class="package-name">${pkg.name}</div>
             <div class="package-duration">${pkg.duration} hrs</div>
             <div class="package-price">KES ${pkg.price}</div>
-            <button class="buy-btn">Buy</button>
+            <button class="buy-btn">Buy Now</button>
           `;
           card.querySelector("button").onclick = () => openModal(pkg.id, pkg.price, pkg.duration);
           container.appendChild(card);
         });
+
       } catch (err) {
         console.error(err);
         alert("Error loading packages: " + err);
@@ -197,7 +232,7 @@
       document.getElementById("phoneModal").style.display = "none";
 
       try {
-        const res = await fetch(BASE_URL, {
+        const res = await fetch(APPS_SCRIPT_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -205,10 +240,11 @@
             routerId,
             packageId: selectedPackage.packageId,
             amount: selectedPackage.price,
-            duration: selectedPackage.duration,
-            phone
+            durationHrs: selectedPackage.duration,
+            phoneNumber: phone
           })
         });
+
         const data = await res.json();
 
         if (data.status === "initiated") {
@@ -220,6 +256,7 @@
         } else {
           alert("Error initiating payment.");
         }
+
       } catch (err) {
         console.error(err);
         alert("Network error while initiating payment.");
@@ -228,5 +265,6 @@
 
     loadData();
   </script>
+
 </body>
 </html>
