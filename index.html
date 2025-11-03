@@ -16,14 +16,8 @@
       font-weight: bold;
       margin-bottom: 5px;
     }
-    .header {
-      margin-bottom: 20px;
-    }
-    .support {
-      margin-top: 10px;
-      font-size: 14px;
-      color: #555;
-    }
+    .header { margin-bottom: 20px; }
+    .support { margin-top: 10px; font-size: 14px; color: #555; }
     .support b { color: #000; }
     .packages {
       display: flex;
@@ -53,7 +47,6 @@
     .package-name { font-size: 16px; margin-bottom: 5px; }
     .package-duration { font-size: 14px; }
     .package-price { font-size: 14px; margin: 5px 0; }
-
     .buy-btn {
       background: #fff;
       border: 1px solid #000;
@@ -118,17 +111,6 @@
       cursor: pointer;
     }
     .cancel-btn:hover { background: #333; }
-
-    @media (max-width: 600px) {
-      .package-card { width: 180px; height: 180px; font-size: 18px; }
-      .package-name { font-size: 18px; }
-      .package-duration,
-      .package-price { font-size: 16px; }
-    }
-    @media (max-width: 400px) {
-      .packages { flex-direction: column; align-items: center; }
-      .package-card { width: 200px; height: 200px; }
-    }
   </style>
 </head>
 <body>
@@ -163,7 +145,7 @@
     let sellerId = "", routerId = "", selectedPackage = {};
 
     async function loadData() {
-      if (!router) { document.body.innerHTML = "<p>Router ID missing</p>"; return; }
+      if (!router) return document.body.innerHTML = "<p>Router ID missing</p>";
 
       try {
         const res = await fetch(`${WORKER_URL}?router=${router}`);
@@ -172,9 +154,12 @@
         sellerId = data.sellerId;
         routerId = data.routerId;
 
-        document.getElementById("hotspot").textContent = `Welcome to HIGH SPEED ${data.hotspotName} WiFi`;
-        document.getElementById("seller").innerHTML = `Provided by <b>${data.sellerName}</b>`;
-        document.getElementById("support").innerHTML = `For support contact: <b>0${String(data.sellerMpesa || "")}</b>`;
+        document.getElementById("hotspot").textContent =
+          `Welcome to HIGH SPEED ${data.hotspotName} WiFi`;
+        document.getElementById("seller").innerHTML =
+          `Provided by <b>${data.sellerName}</b>`;
+        document.getElementById("support").innerHTML =
+          `For support contact: <b>0${String(data.sellerMpesa || "")}</b>`;
 
         const pkgs = JSON.parse(data.packages);
         const container = document.getElementById("packages");
@@ -237,6 +222,7 @@
             phoneNumber: phone
           })
         });
+
         const data = await res.json();
 
         if (data.status === "initiated") {
@@ -257,6 +243,5 @@
 
     loadData();
   </script>
-
 </body>
 </html>
