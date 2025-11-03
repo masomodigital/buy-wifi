@@ -16,21 +16,11 @@
       min-height: 100vh;
       text-align: center;
     }
-    h2 {
-      color: green;
-      font-weight: bold;
-      margin-bottom: 5px;
-    }
+    h2 { color: green; font-weight: bold; margin-bottom: 5px; }
     .header { margin-bottom: 20px; }
     .support { margin-top: 10px; font-size: 14px; color: #555; }
     .support b { color: #000; }
-    .packages {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 20px;
-      max-width: 900px;
-    }
+    .packages { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; max-width: 900px; }
     .package-card {
       width: 160px;
       height: 160px;
@@ -85,19 +75,8 @@
       max-width: 400px;
       box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     }
-    .modal-message {
-      font-weight: bold;
-      color: green;
-      margin-bottom: 15px;
-    }
-    .modal-input {
-      width: 100%;
-      padding: 10px;
-      font-size: 16px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      margin-bottom: 15px;
-    }
+    .modal-message { font-weight: bold; color: green; margin-bottom: 15px; }
+    .modal-input { width: 100%; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 8px; margin-bottom: 15px; }
     .modal-actions { display: flex; justify-content: center; gap: 10px; }
     .modal-btn {
       background: #007bff;
@@ -130,126 +109,113 @@
 </head>
 <body>
 
-  <div class="header">
-    <h2 id="hotspotName">Welcome to HIGH SPEED WiFi</h2>
-    <p>Provided by <b id="sellerName"></b></p>
-    <p class="support">For support contact: <b id="sellerMpesa"></b></p>
-  </div>
+<div class="header">
+  <h2 id="hotspotName">Welcome to HIGH SPEED WiFi</h2>
+  <p>Provided by <b id="sellerName"></b></p>
+  <p class="support">For support contact: <b id="sellerMpesa"></b></p>
+</div>
 
-  <div class="packages" id="packagesContainer"></div>
+<div class="packages" id="packagesContainer"></div>
 
-  <div class="modal" id="phoneModal">
-    <div class="modal-content">
-      <div class="modal-message">
-        Kindly input Mpesa number to make payment and get connected.
-      </div>
-      <input type="text" id="phoneInput" class="modal-input" placeholder="07xxxxxxxx">
-      <div class="modal-actions">
-        <button class="modal-btn" onclick="submitPhone()">Proceed</button>
-        <button class="cancel-btn" onclick="document.getElementById('phoneModal').style.display='none'">Cancel</button>
-      </div>
+<div class="modal" id="phoneModal">
+  <div class="modal-content">
+    <div class="modal-message">Kindly input Mpesa number to make payment and get connected.</div>
+    <input type="text" id="phoneInput" class="modal-input" placeholder="07xxxxxxxx">
+    <div class="modal-actions">
+      <button class="modal-btn" onclick="submitPhone()">Proceed</button>
+      <button class="cancel-btn" onclick="document.getElementById('phoneModal').style.display='none'">Cancel</button>
     </div>
   </div>
+</div>
 
-  <script>
-    const webAppUrl = "https://script.google.com/macros/s/AKfycbyzVG18wFaaNQPwP1iTc7zPSGqxJ3u-ATQXnFOY7M6llzxPo4GmODNNf02e9jn7Y6bn/exec";
-    const urlParams = new URLSearchParams(window.location.search);
-    const routerId = urlParams.get('router');
-    let sellerId = ""; // will be set after fetching data
-    let packagesData = [];
-    let selectedPackage = {};
+<script>
+const webAppUrl = "https://script.google.com/macros/s/AKfycbyzVG18wFaaNQPwP1iTc7zPSGqxJ3u-ATQXnFOY7M6llzxPo4GmODNNf02e9jn7Y6bn/exec";
+const urlParams = new URLSearchParams(window.location.search);
+const routerId = urlParams.get('router');
+let sellerId = "";
+let packagesData = [];
+let selectedPackage = {};
 
-    function normalizePhone(number) {
-      number = number.trim();
-      if (number.startsWith("0") && number.length === 10) return "+254" + number.slice(1);
-      if (number.startsWith("+254") && number.length === 13) return number;
-      if (number.length === 9 && number.startsWith("7")) return "+254" + number;
-      return number;
+function normalizePhone(number) {
+  number = number.trim();
+  if(number.startsWith("0") && number.length === 10) return "+254"+number.slice(1);
+  if(number.startsWith("+254") && number.length === 13) return number;
+  if(number.length === 9 && number.startsWith("7")) return "+254"+number;
+  return number;
+}
+
+function openModal(packageId, price, duration) {
+  selectedPackage = { packageId, price, duration };
+  document.getElementById("phoneModal").style.display = "flex";
+  document.getElementById("phoneInput").value = "07";
+}
+
+function submitPhone() {
+  let phone = document.getElementById("phoneInput").value;
+  if(!phone || !phone.startsWith("07")) { alert("Please enter a valid phone number starting with 07"); return; }
+  phone = normalizePhone(phone);
+  document.getElementById("phoneModal").style.display = "none";
+
+  const payload = {
+    routerId,
+    sellerId,
+    packageId: selectedPackage.packageId,
+    amount: selectedPackage.price,
+    durationHrs: selectedPackage.duration,
+    phoneNumber: phone
+  };
+
+  fetch(webAppUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  })
+  .then(res => res.json())
+  .then(res => {
+    if(res.status === "initiated") {
+      alert("STK Push sent to your phone. Reference: " + res.ref);
+    } else {
+      alert("Error initiating payment: " + (res.paystackResponse?.message || res.message || "Unknown error"));
     }
+  })
+  .catch(err => { console.error(err); alert("Network error: " + err); });
+}
 
-    function openModal(packageId, price, duration) {
-      selectedPackage = { packageId, price, duration };
-      document.getElementById("phoneModal").style.display = "flex";
-      document.getElementById("phoneInput").value = "07";
-    }
+function renderPackages() {
+  const container = document.getElementById("packagesContainer");
+  container.innerHTML = "";
+  const colors = ["color1","color2","color3","color4","color5"];
+  packagesData.forEach((pkg,i) => {
+    const card = document.createElement("div");
+    card.className = `package-card ${colors[i%colors.length]}`;
+    card.innerHTML = `
+      <div class="package-name">${pkg.name}</div>
+      <div class="package-duration">${pkg.duration} hrs</div>
+      <div class="package-price">KES ${pkg.price}</div>
+      <button class="buy-btn" onclick="openModal('${pkg.id}','${pkg.price}','${pkg.duration}')">Buy Now</button>
+    `;
+    container.appendChild(card);
+  });
+}
 
-    function submitPhone() {
-      let phone = document.getElementById("phoneInput").value;
-      if (!phone || !phone.startsWith("07")) {
-        alert("Please enter a valid phone number starting with 07");
-        return;
-      }
-      phone = normalizePhone(phone);
-      document.getElementById("phoneModal").style.display = "none";
+function loadData() {
+  if(!routerId) { alert("Router ID missing in URL"); return; }
+  fetch(`${webAppUrl}?router=${routerId}`)
+    .then(res => res.json())
+    .then(data => {
+      if(data.status !== "ok") { alert("Error loading router data: "+data.message); return; }
+      document.getElementById("hotspotName").innerText = data.hotspotName;
+      document.getElementById("sellerName").innerText = data.sellerName;
+      document.getElementById("sellerMpesa").innerText = data.sellerMpesa;
+      sellerId = data.sellerId;
+      packagesData = data.packages;
+      renderPackages();
+    })
+    .catch(err => { console.error(err); alert("Failed to load router data: "+err); });
+}
 
-      const payload = {
-        routerId,
-        sellerId,
-        packageId: selectedPackage.packageId,
-        amount: selectedPackage.price,
-        durationHrs: selectedPackage.duration,
-        phoneNumber: phone
-      };
-
-      fetch(webAppUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      })
-      .then(res => res.json())
-      .then(res => {
-        if (res.status === "initiated") {
-          alert("STK Push sent to your phone. Reference: " + res.ref);
-        } else {
-          alert("Error initiating payment: " + (res.paystackResponse?.message || res.message || "Unknown error"));
-        }
-      })
-      .catch(err => {
-        console.error(err);
-        alert("Network error: " + err);
-      });
-    }
-
-    function loadData() {
-      if (!routerId) {
-        alert("Router ID missing in URL");
-        return;
-      }
-
-      fetch(`${webAppUrl}?router=${routerId}`)
-      .then(res => res.text())
-      .then(html => {
-        // Create a temporary DOM to parse the returned HTML
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-
-        const sellerName = doc.querySelector("p b")?.innerText || "";
-        const hotspotName = doc.querySelector("h2")?.innerText || "";
-        const sellerMpesa = doc.querySelector(".support b")?.innerText || "";
-
-        document.getElementById("hotspotName").innerText = hotspotName;
-        document.getElementById("sellerName").innerText = sellerName;
-        document.getElementById("sellerMpesa").innerText = sellerMpesa;
-
-        // Extract packages JSON from script tag
-        const scripts = doc.querySelectorAll("script");
-        scripts.forEach(s => {
-          if (s.textContent.includes("var pkgs = JSON.parse(packages);")) {
-            const jsonMatch = s.textContent.match(/JSON\.parse\(packages\)/);
-            // Instead, get from HTML directly using a placeholder in code.gs if possible
-          }
-        });
-
-        // For simplicity, we could manually fetch packages via an API endpoint if needed
-      })
-      .catch(err => {
-        console.error(err);
-        alert("Failed to load router data: " + err);
-      });
-    }
-
-    window.onload = loadData;
-  </script>
+window.onload = loadData;
+</script>
 </body>
 </html>
 
